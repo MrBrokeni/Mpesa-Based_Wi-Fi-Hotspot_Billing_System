@@ -1,0 +1,36 @@
+name: keko-app
+x-keko: &keko
+  restart: unless-stopped
+  init: true
+  pull_policy: never
+  security_opt: [no-new-privileges:true]
+  labels:
+    - io.keko.stack=production
+    - traefik.enable=false
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+services:
+  postgres:
+    <<: *keko
+    image: keko-postgres:r20260914
+    env_file: [{path: /etc/keko/postgres.env, required: false}]
+    command: [postgres, -c, max_connections=40, -c, shared_buffers=128MB, -c, archive_mode=off]
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    networks:
+      backend:
+        aliases: [keko-db]
+    mem_limit: 768m
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U keko_migrator -d keko"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+networks:
+  backend:
+    external: true
+    name: keko-backend
+volumes:
+  postgres-data:
+    external: true
+    name: keko-postgres-data

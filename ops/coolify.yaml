@@ -1,0 +1,73 @@
+name: keko-app
+x-keko: &keko
+  restart: unless-stopped
+  init: true
+  pull_policy: never
+  security_opt: [no-new-privileges:true]
+  labels:
+    - io.keko.stack=production
+    - traefik.enable=false
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+services:
+  postgres:
+    <<: *keko
+    image: keko-postgres:r20260914
+    env_file: [{path: /etc/keko/postgres.env, required: false}]
+    command: [postgres, -c, max_connections=40, -c, shared_buffers=128MB, -c, archive_mode=off]
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    networks:
+      backend:
+        aliases: [keko-db]
+    mem_limit: 768m
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U keko_migrator -d keko"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  api:
+    <<: *keko
+    image: keko-api:r20260914
+    env_file: [{path: /etc/keko/runtime.env, required: false}]
+    ports: ["127.0.0.1:15000:5000", "127.0.0.1:15001:5001"]
+    extra_hosts: ["router-management.autoguard.co.tz:10.77.0.2"]
+    read_only: true
+    tmpfs: [/tmp]
+    networks: [backend]
+    mem_limit: 384m
+    depends_on: {postgres: {condition: service_healthy}}
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:5000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+  worker:
+    <<: *keko
+    image: keko-api:r20260914
+    command: [node, dist/backend/worker.js]
+    env_file: [{path: /etc/keko/runtime.env, required: false}]
+    extra_hosts: ["router-management.autoguard.co.tz:10.77.0.2"]
+    read_only: true
+    tmpfs: [/tmp]
+    networks: [backend]
+    mem_limit: 384m
+    depends_on: {postgres: {condition: service_healthy}}
+  frontend:
+    <<: *keko
+    image: keko-frontend:r20260914
+    environment:
+      HOTSPOT_LOGIN_URL: https://login.kekointernet.autoguard.co.tz/login
+    ports: ["127.0.0.1:13000:3000"]
+    read_only: true
+    tmpfs: [/tmp, /app/frontend/.next/cache]
+    networks: [backend]
+    mem_limit: 384m
+networks:
+  backend:
+    external: true
+    name: keko-backend
+volumes:
+  postgres-data:
+    external: true
+    name: keko-postgres-data
