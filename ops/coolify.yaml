@@ -28,7 +28,7 @@ services:
       retries: 5
   api:
     <<: *keko
-    image: keko-api:r20260926-experience
+    image: keko-api:r20260926-payment-status
     env_file: [{path: /etc/keko/runtime.env, required: false}]
     ports: ["127.0.0.1:15000:5000", "127.0.0.1:15001:5001"]
     extra_hosts: ["router-management.autoguard.co.tz:10.77.0.2"]
@@ -44,7 +44,7 @@ services:
       retries: 3
   worker:
     <<: *keko
-    image: keko-api:r20260926-experience
+    image: keko-api:r20260926-payment-status
     command: [node, dist/backend/worker.js]
     env_file: [{path: /etc/keko/runtime.env, required: false}]
     extra_hosts: ["router-management.autoguard.co.tz:10.77.0.2"]
