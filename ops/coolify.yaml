@@ -6,6 +6,11 @@ x-keko: &keko
   security_opt: [no-new-privileges:true]
   labels:
     - io.keko.stack=production
+    # Coolify v4.7 discovers this raw Compose project by resource UUID.
+    - coolify.applicationUuid=fy8l6empjbmv3ygamw6sunpy
+    - coolify.applicationId=3
+    - coolify.managed=true
+    - coolify.type=application
     - traefik.enable=false
   logging:
     driver: json-file
