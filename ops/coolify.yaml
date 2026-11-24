@@ -60,7 +60,7 @@ services:
     depends_on: {postgres: {condition: service_healthy}}
   frontend:
     <<: *keko
-    image: keko-frontend:r20261124-vouchers
+    image: keko-frontend:r20261125-voucher-qr
     environment:
       HOTSPOT_LOGIN_URL: https://login.kekointernet.autoguard.co.tz/login
     ports: ["127.0.0.1:13000:3000"]
